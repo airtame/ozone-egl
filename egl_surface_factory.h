@@ -4,11 +4,9 @@
 
 #ifndef UI_OZONE_PLATFORM_SURFACE_FACTORY_H_
 #define UI_OZONE_PLATFORM_SURFACE_FACTORY_H_
-
-#include "base/memory/scoped_ptr.h"
+#include "ui/ozone/common/gl_ozone_egl.h"
 #include "ui/ozone/public/surface_factory_ozone.h"
-#include "ui/ozone/platform/egl/egl_window.h"
-
+#include "egl_window.h"
 
 namespace gfx {
 class SurfaceOzone;
@@ -17,32 +15,23 @@ class SurfaceOzone;
 namespace ui {
 
 class SurfaceFactoryEgl : public ui::SurfaceFactoryOzone {
- public:
-  SurfaceFactoryEgl();
-  ~SurfaceFactoryEgl() override  ;
+public:
+    SurfaceFactoryEgl();
+    ~SurfaceFactoryEgl() override;
 
-  // Create the window.
-  bool CreateSingleWindow();
-  void DestroySingleWindow();
+    // Create the window.
+    bool CreateSingleWindow();
+    void DestroySingleWindow();
+    intptr_t GetNativeWindow();
+    // SurfaceFactoryOzone:
+    std::unique_ptr<ui::SurfaceOzoneCanvas> CreateCanvasForWidget(gfx::AcceleratedWidget widget) override;
+    std::vector<gl::GLImplementation> GetAllowedGLImplementations() override;
+    GLOzone* GetGLOzone(gl::GLImplementation implementation) override;
 
-  // SurfaceFactoryOzone:
-  intptr_t GetNativeDisplay() override;
-  //virtual gfx::AcceleratedWidget GetAcceleratedWidget() override;
-  scoped_ptr<ui::SurfaceOzoneEGL> CreateEGLSurfaceForWidget(
-      gfx::AcceleratedWidget widget) override;
-  const int32* GetEGLSurfaceProperties(
-      const int32* desired_list) override;
-  bool LoadEGLGLES2Bindings(
-      AddGLLibraryCallback add_gl_library,
-      SetGLGetProcAddressProcCallback set_gl_get_proc_address) override;
-  scoped_ptr<ui::SurfaceOzoneCanvas> CreateCanvasForWidget(
-      gfx::AcceleratedWidget widget) override;
-  intptr_t GetNativeWindow();
-
- private:
+private:
     bool init_;
 };
 
-}  // namespace ui
+} // namespace ui
 
 #endif

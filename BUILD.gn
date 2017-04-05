@@ -1,0 +1,47 @@
+visibility = [ "//ui/ozone/*" ]
+
+config("egl_config") {
+       defines = [ "OZONE_IMPLEMENTATION",
+             "LINUX",
+        "EGL_API_FB"
+       ]
+}
+
+
+source_set("egl") {
+
+
+  sources = [
+    "client_native_pixmap_factory_egl.cc",
+    "client_native_pixmap_factory_egl.h",
+    "egl_surface_factory.cc",
+    "egl_surface_factory.h",
+    "egl_window.cc",
+    "egl_window.h",
+    "egl_wrapper.cc",
+    "egl_wrapper.h",
+    "ozone_platform_egl.cc",
+    "ozone_platform_egl.h",
+    "GLSurfacelessImpl.cc",
+    "GLSurfacelessImpl.h",
+    "GLSurfaceEglImpl.cc"
+  ]
+
+  deps = [
+   # "//base",
+    "//skia",
+    #"//ui/base",
+    "//ui/display",
+    #"//ui/events",
+    "//ui/events/ozone:events_ozone_evdev",
+    "//ui/events/ozone:events_ozone",
+    "//ui/events/ozone:events_ozone_layout",
+    #"//ui/events/platform",
+    "//ui/gfx/geometry",
+    "//ui/ozone/common",
+    #"//ui/platform_window",
+  ]
+
+  configs += [ ":egl_config" ]
+  libs = [ "EGL","GLESv2"]
+}

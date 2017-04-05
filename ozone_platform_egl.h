@@ -10,8 +10,8 @@ namespace ui {
 class OzonePlatform;
 
 // Constructor hook for use in ozone_platform_list.cc
-OzonePlatform* CreateOzonePlatformEglhaisi();
+OzonePlatform* CreateOzonePlatformEgl();
 
-}  // namespace ui
+} // namespace ui
 
 #endif

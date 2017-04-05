@@ -14,23 +14,20 @@
 
 #include "egl_wrapper.h"
 #include "base/logging.h"
-
-#if defined(EGL_API_BRCM)
-#include "bcm_host.h"
+#if defined(EGL_API_FB)
+#include <EGL/eglvivante.h>
 #endif
 
 typedef NativeDisplayType NativeDisplay;
-typedef intptr_t            NativeWindow;
-typedef void *            NativePixmap;
+typedef intptr_t NativeWindow;
+typedef void *NativePixmap;
 
-typedef struct fbdev_window
-{
+typedef struct fbdev_window {
     unsigned short width;
     unsigned short height;
 } fbdev_window;
 
-
-//rgba8888
+// rgba8888
 /*
 static EGLint g_configAttribs[] = {
     EGL_RED_SIZE, 8,
@@ -42,26 +39,21 @@ static EGLint g_configAttribs[] = {
 };
   */
 static EGLint g_configAttribs[] = {
-    EGL_RED_SIZE, 5,
-    EGL_GREEN_SIZE, 6,
-    EGL_BLUE_SIZE, 5,
-    EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-    EGL_NONE,
+    EGL_RED_SIZE, 5, EGL_GREEN_SIZE, 6, EGL_BLUE_SIZE, 5, EGL_SURFACE_TYPE, EGL_WINDOW_BIT, EGL_NONE,
 };
 
-static EGLDisplay g_EglDisplay = NULL;
 static EGLContext g_EglContext = NULL;
 static EGLSurface g_EglSurface = NULL;
 
-static NativeDisplayType g_NativeDisplay= NULL;
-static NativeWindowType g_NativeWindow;
+static EGLConfig g_EglConfig;
+static EGLDisplay g_EglDisplay = NULL;
+static NativeDisplayType g_NativeDisplay = NULL;
+static NativeWindowType g_NativeWindow = NULL;
 
-static int g_WindowWidth=0;
-static int g_WindowHeight=0;
+static int g_WindowWidth = 0;
+static int g_WindowHeight = 0;
 
-
-NativeDisplay ozone_egl_nativeCreateDisplay(void)
-{
+NativeDisplay ozone_egl_nativeCreateDisplay(void) {
 #if defined(EGL_API_FB)
     return (NativeDisplay)fbGetDisplayByIndex(0);
 #else
@@ -69,146 +61,90 @@ NativeDisplay ozone_egl_nativeCreateDisplay(void)
 #endif
 }
 
-void ozone_egl_nativeDestroyDisplay(NativeDisplay display)
-{
+void ozone_egl_nativeDestroyDisplay(NativeDisplay display) {
     return;
 }
 
-NativeWindowType ozone_egl_GetNativeWin(){
-  return g_NativeWindow;
+NativeWindowType ozone_egl_GetNativeWin() {
+    LOG(INFO) << "ozone_egl_GetNativeWin :" << std::hex << (void *)g_NativeWindow;
+    return g_NativeWindow;
 }
 
-NativeWindow ozone_egl_nativeCreateWindow(const char *title, int width, int height, EGLint visualId)
-{
-    fbdev_window *fbwin =(fbdev_window *) malloc( sizeof(fbdev_window));
-    if (NULL == fbwin)
-    {
+NativeWindow ozone_egl_nativeCreateWindow(const char *title, int width, int height, EGLint visualId) {
+    fbdev_window *fbwin = (fbdev_window *)malloc(sizeof(fbdev_window));
+    if (NULL == fbwin) {
         return 0;
     }
 
-    fbwin->width  = width;
+    fbwin->width = width;
     fbwin->height = height;
-    return (NativeWindow) fbwin;
+    return (NativeWindow)fbwin;
 }
 
-void ozone_egl_nativeDestroyWindow(NativeWindow window)
-{
-    if(window !=0 )
-    {
-       free((fbdev_window*) window);
+void ozone_egl_nativeDestroyWindow(NativeWindow window) {
+    if (window != 0) {
+        free((fbdev_window *)window);
     }
 }
 
-EGLint ozone_egl_setup(EGLint x, EGLint y, EGLint width, EGLint height )
-{
+EGLint ozone_egl_setup(EGLint x, EGLint y, EGLint width, EGLint height) {
     EGLConfig configs[10];
     EGLint matchingConfigs;
     EGLint err;
 
-#if defined(EGL_API_BRCM)
-    bcm_host_init();
-#endif
-
-    EGLint ctxAttribs[] =
-    {
-        EGL_CONTEXT_CLIENT_VERSION, 2,
-        EGL_NONE
-    };
+    EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
 
     eglBindAPI(EGL_OPENGL_ES_API);
 
     g_NativeDisplay = (NativeDisplayType)ozone_egl_nativeCreateDisplay();
 #if defined(EGL_API_FB)
-    fbGetDisplayGeometry(g_NativeDisplay,&g_WindowWidth,&g_WindowHeight);
-#elif defined(EGL_API_BRCM)
-    uint32_t w = 1280;
-	uint32_t h = 720;
-    if (graphics_get_display_size(0, &w, &h) >= 0) {
-        g_WindowWidth = w;
-        g_WindowHeight = h;
-        LOG(INFO) << "Detected display size: " << w << "x" << h;
-    } else
-        LOG(ERROR) << "Failed to detect display size, using default: " << w << "x" << h;
+    fbGetDisplayGeometry(g_NativeDisplay, &g_WindowWidth, &g_WindowHeight);
 #endif
 
     g_EglDisplay = eglGetDisplay(g_NativeDisplay);
-    if (g_EglDisplay == EGL_NO_DISPLAY)
-    {
+    if (g_EglDisplay == EGL_NO_DISPLAY) {
         LOG(ERROR) << "eglGetDisplay returned EGL_NO_DISPLAY";
         return OZONE_EGL_FAILURE;
     }
 
     EGLint major, minor;
-    if (!eglInitialize(g_EglDisplay, &major, &minor))
-    {
-    	LOG(ERROR) << "eglInitialize failed.";
+    if (!eglInitialize(g_EglDisplay, &major, &minor)) {
+        LOG(ERROR) << "eglInitialize failed.";
         return OZONE_EGL_FAILURE;
     }
     LOG(INFO) << "EGL impl. version: " << major << "." << minor;
 
-    if (!eglChooseConfig(g_EglDisplay, g_configAttribs, &configs[0],
-                         sizeof(configs)/sizeof(configs[0]), &matchingConfigs))
-    {
-    	LOG(ERROR) << "eglChooseConfig failed.";
+    if (!eglChooseConfig(g_EglDisplay, g_configAttribs, &configs[0], sizeof(configs) / sizeof(configs[0]),
+                         &matchingConfigs)) {
+        LOG(ERROR) << "eglChooseConfig failed.";
         return OZONE_EGL_FAILURE;
     }
 
-    if (matchingConfigs < 1)
-    {
-    	LOG(ERROR) << "No matching configs found";
+    if (matchingConfigs < 1) {
+        LOG(ERROR) << "No matching configs found";
         return OZONE_EGL_FAILURE;
     }
 
     g_EglContext = eglCreateContext(g_EglDisplay, configs[0], NULL, ctxAttribs);
-    if (g_EglContext == EGL_NO_CONTEXT)
-    {
-    	LOG(ERROR) << "Failed to get EGL Context";
+    if (g_EglContext == EGL_NO_CONTEXT) {
+        LOG(ERROR) << "Failed to get EGL Context";
         return OZONE_EGL_FAILURE;
     }
+    g_EglConfig = configs[0];
 
 #if defined(EGL_API_FB)
     g_NativeWindow = fbCreateWindow(g_NativeDisplay, 0, 0, g_WindowWidth, g_WindowHeight);
-#elif defined(EGL_API_BRCM)
-    static EGL_DISPMANX_WINDOW_T dispManWindow;
-    DISPMANX_ELEMENT_HANDLE_T dispmanElement;
-    DISPMANX_DISPLAY_HANDLE_T dispmanDisplay;
-    DISPMANX_UPDATE_HANDLE_T dispmanUpdate;
-    VC_RECT_T dst_rect;
-    VC_RECT_T src_rect;
-
-    dst_rect.x = 0;
-    dst_rect.y = 0;
-    dst_rect.width = g_WindowWidth;
-    dst_rect.height = g_WindowHeight;
-
-    src_rect.x = 0;
-    src_rect.y = 0;
-    src_rect.width = g_WindowWidth << 16;
-    src_rect.height = g_WindowHeight << 16;
-
-    dispmanDisplay = vc_dispmanx_display_open(0);
-    dispmanUpdate = vc_dispmanx_update_start(0);
-
-    dispmanElement = vc_dispmanx_element_add(dispmanUpdate, dispmanDisplay, 0, &dst_rect, 0, &src_rect, DISPMANX_PROTECTION_NONE, 0, 0, DISPMANX_NO_ROTATE);
-
-    dispManWindow.element = dispmanElement;
-    dispManWindow.width = g_WindowWidth;
-    dispManWindow.height = g_WindowHeight;
-    vc_dispmanx_update_submit_sync(dispmanUpdate);
-
-    g_NativeWindow = static_cast<NativeWindowType>(&dispManWindow);
+    LOG(INFO) << "g_NativeWindow: " << std::hex << g_NativeWindow;
 #endif
 
     g_EglSurface = eglCreateWindowSurface(g_EglDisplay, configs[0], g_NativeWindow, NULL);
-    if (g_EglSurface == NULL)
-    {
+    if (g_EglSurface == NULL) {
         LOG(ERROR) << "g_EglSurface == EGL_NO_SURFACE eglGeterror = " << eglGetError();
         return OZONE_EGL_FAILURE;
     }
 
     eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext);
-    if (EGL_SUCCESS != (err = eglGetError()))
-    {
+    if (EGL_SUCCESS != (err = eglGetError())) {
         LOG(ERROR) << "Failed eglMakeCurrent. eglGetError = 0x%x\n" << err;
         return OZONE_EGL_FAILURE;
     }
@@ -216,282 +152,256 @@ EGLint ozone_egl_setup(EGLint x, EGLint y, EGLint width, EGLint height )
     return OZONE_EGL_SUCCESS;
 }
 
-int ozone_egl_destroy()
-{
+NativeDisplayType ozone_egl_getNativedisp() {
+    return g_NativeDisplay;
+}
 
+int ozone_egl_destroy() {
     int s32Loop = 0;
 
-    /** clean double buffer  **/
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-    for (s32Loop = 0; s32Loop < 2; s32Loop++)
-    {
+    for (s32Loop = 0; s32Loop < 2; s32Loop++) {
         glClear(GL_COLOR_BUFFER_BIT);
         ozone_egl_swap();
     }
 
     eglMakeCurrent(g_EglDisplay, NULL, NULL, NULL);
 
-    if (g_EglContext)
-    {
+    if (g_EglContext) {
         eglDestroyContext(g_EglDisplay, g_EglContext);
     }
 
-    if (g_EglSurface)
-    {
+    if (g_EglSurface) {
         eglDestroySurface(g_EglDisplay, g_EglSurface);
     }
 
     eglTerminate(g_EglDisplay);
 
-    //ozone_egl_nativeDestroyWindow(g_NativeWindow);
+    // ozone_egl_nativeDestroyWindow(g_NativeWindow);
     ozone_egl_nativeDestroyDisplay(g_NativeDisplay);
 
     return OZONE_EGL_SUCCESS;
 }
 
-int ozone_egl_swap()
-{
+int ozone_egl_swap() {
+    DCHECK(g_EglSurface);
     eglSwapBuffers(g_EglDisplay, g_EglSurface);
-
+    DCHECK(g_EglSurface);
     return OZONE_EGL_SUCCESS;
 }
 
-NativeDisplayType ozone_egl_getNativedisp()
-{
-    return g_NativeDisplay;
-}
-
-EGLint * ozone_egl_getConfigAttribs()
-{
+EGLint *ozone_egl_getConfigAttribs() {
     return g_configAttribs;
 }
 
-EGLDisplay ozone_egl_getdisp()
-{
+EGLDisplay ozone_egl_getdisp() {
     return g_EglDisplay;
 }
 
-EGLSurface ozone_egl_getsurface()
-{
+EGLConfig ozone_egl_getconfig() {
+    return g_EglConfig;
+}
+
+EGLSurface ozone_egl_getsurface() {
     return g_EglSurface;
 }
 
-
-void ozone_egl_makecurrent()
-{
+void ozone_egl_makecurrent() {
     eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext);
 }
 
-GLuint ozone_egl_loadShader ( GLenum type, const char *shaderSrc )
-{
-   GLuint shader;
-   GLint compiled;
-   
-   // Create the shader object
-   shader = glCreateShader ( type );
+GLuint ozone_egl_loadShader(GLenum type, const char *shaderSrc) {
+    GLuint shader;
+    GLint compiled;
 
-   if ( shader == 0 )
-   	return 0;
+    // Create the shader object
+    shader = glCreateShader(type);
 
-   // Load the shader source
-   glShaderSource ( shader, 1, &shaderSrc, NULL );
-   
-   // Compile the shader
-   glCompileShader ( shader );
+    if (shader == 0)
+        return 0;
 
-   // Check the compile status
-   glGetShaderiv ( shader, GL_COMPILE_STATUS, &compiled );
+    // Load the shader source
+    glShaderSource(shader, 1, &shaderSrc, NULL);
 
-   if ( !compiled ) 
-   {
-      GLint infoLen = 0;
+    // Compile the shader
+    glCompileShader(shader);
 
-      glGetShaderiv ( shader, GL_INFO_LOG_LENGTH, &infoLen );
-      
-      if ( infoLen > 1 )
-      {
-         char* infoLog = new char[infoLen];
+    // Check the compile status
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
 
-         glGetShaderInfoLog ( shader, infoLen, NULL, infoLog );
-         printf ( "Error compiling shader:%s\n", infoLog );            
-         
-         delete infoLog;
-      }
+    if (!compiled) {
+        GLint infoLen = 0;
 
-      glDeleteShader ( shader );
-      return 0;
-   }
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
 
-   return shader;
+        if (infoLen > 1) {
+            char *infoLog = new char[infoLen];
 
+            glGetShaderInfoLog(shader, infoLen, NULL, infoLog);
+            printf("Error compiling shader:%s\n", infoLog);
+
+            delete[] infoLog;
+        }
+
+        glDeleteShader(shader);
+        return 0;
+    }
+
+    return shader;
 }
-GLuint ozone_egl_loadProgram ( const char *vertShaderSrc, const char *fragShaderSrc )
-{
+GLuint ozone_egl_loadProgram(const char *vertShaderSrc, const char *fragShaderSrc) {
+    GLuint vertexShader;
+    GLuint fragmentShader;
+    GLuint programObject;
+    GLint linked;
 
-   GLuint vertexShader;
-   GLuint fragmentShader;
-   GLuint programObject;
-   GLint linked;
+    // Load the vertex/fragment shaders
+    vertexShader = ozone_egl_loadShader(GL_VERTEX_SHADER, vertShaderSrc);
+    if (vertexShader == 0)
+        return 0;
 
-   // Load the vertex/fragment shaders
-   vertexShader = ozone_egl_loadShader ( GL_VERTEX_SHADER, vertShaderSrc );
-   if ( vertexShader == 0 )
-      return 0;
+    fragmentShader = ozone_egl_loadShader(GL_FRAGMENT_SHADER, fragShaderSrc);
+    if (fragmentShader == 0) {
+        glDeleteShader(vertexShader);
+        return 0;
+    }
 
-   fragmentShader = ozone_egl_loadShader ( GL_FRAGMENT_SHADER, fragShaderSrc );
-   if ( fragmentShader == 0 )
-   {
-      glDeleteShader( vertexShader );
-      return 0;
-   }
+    // Create the program object
+    programObject = glCreateProgram();
 
-   // Create the program object
-   programObject = glCreateProgram ( );
-   
-   if ( programObject == 0 )
-      return 0;
+    if (programObject == 0)
+        return 0;
 
-   glAttachShader ( programObject, vertexShader );
-   glAttachShader ( programObject, fragmentShader );
+    glAttachShader(programObject, vertexShader);
+    glAttachShader(programObject, fragmentShader);
 
-   // Link the program
-   glLinkProgram ( programObject );
+    // Link the program
+    glLinkProgram(programObject);
 
-   // Check the link status
-   glGetProgramiv ( programObject, GL_LINK_STATUS, &linked );
+    // Check the link status
+    glGetProgramiv(programObject, GL_LINK_STATUS, &linked);
 
-   if ( !linked ) 
-   {
-      GLint infoLen = 0;
+    if (!linked) {
+        GLint infoLen = 0;
 
-      glGetProgramiv ( programObject, GL_INFO_LOG_LENGTH, &infoLen );
-      
-      if ( infoLen > 1 )
-      {
-         char* infoLog = new char[infoLen];
+        glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, &infoLen);
 
-         glGetProgramInfoLog ( programObject, infoLen, NULL, infoLog );
-         printf ( "Error linking program:%s\n", infoLog );            
-         
-         delete infoLog;
-      }
+        if (infoLen > 1) {
+            char *infoLog = new char[infoLen];
 
-      glDeleteProgram ( programObject );
-      return 0;
-   }
+            glGetProgramInfoLog(programObject, infoLen, NULL, infoLog);
+            printf("Error linking program:%s\n", infoLog);
 
-   // Free up no longer needed shader resources
-   glDeleteShader ( vertexShader );
-   glDeleteShader ( fragmentShader );
+            delete[] infoLog;
+        }
 
-   return programObject;
+        glDeleteProgram(programObject);
+        return 0;
+    }
+
+    // Free up no longer needed shader resources
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return programObject;
 }
 
+int ozone_egl_textureInit(ozone_egl_UserData *userData) {
+    GLbyte vShaderStr[] =
+        "attribute vec4 a_position;   \n"
+        "attribute vec2 a_texCoord;   \n"
+        "varying vec2 v_texCoord;     \n"
+        "void main()                  \n"
+        "{                            \n"
+        "   gl_Position = a_position; \n"
+        "   v_texCoord = a_texCoord;  \n"
+        "}                            \n";
 
+    GLbyte fShaderStr[] =
+        "precision mediump float;                            \n"
+        "varying vec2 v_texCoord;                            \n"
+        "uniform sampler2D s_texture;                        \n"
+        "void main()                                         \n"
+        "{                                                   \n"
+        "  gl_FragColor = texture2D( s_texture, v_texCoord );\n"
+        "}                                                   \n";
 
-int ozone_egl_textureInit (ozone_egl_UserData * userData )
-{
-   GLbyte vShaderStr[] =  
-      "attribute vec4 a_position;   \n"
-      "attribute vec2 a_texCoord;   \n"
-      "varying vec2 v_texCoord;     \n"
-      "void main()                  \n"
-      "{                            \n"
-      "   gl_Position = a_position; \n"
-      "   v_texCoord = a_texCoord;  \n"
-      "}                            \n";
-   
-   GLbyte fShaderStr[] =  
-      "precision mediump float;                            \n"
-      "varying vec2 v_texCoord;                            \n"
-      "uniform sampler2D s_texture;                        \n"
-      "void main()                                         \n"
-      "{                                                   \n"
-      "  gl_FragColor = texture2D( s_texture, v_texCoord );\n"
-      "}                                                   \n";
-      
+    // Load the shaders and get a linked program object
+    userData->programObject = ozone_egl_loadProgram((const char *)vShaderStr, (const char *)fShaderStr);
 
-   // Load the shaders and get a linked program object
-   userData->programObject = ozone_egl_loadProgram ( (const char *)vShaderStr, (const char*)fShaderStr );
+    // Get the attribute locations
+    userData->positionLoc = glGetAttribLocation(userData->programObject, "a_position");
+    userData->texCoordLoc = glGetAttribLocation(userData->programObject, "a_texCoord");
 
-   // Get the attribute locations
-   userData->positionLoc = glGetAttribLocation ( userData->programObject, "a_position" );
-   userData->texCoordLoc = glGetAttribLocation ( userData->programObject, "a_texCoord" );
-   
-   // Get the sampler location
-   userData->samplerLoc = glGetUniformLocation ( userData->programObject, "s_texture" );
-   
-   // Load the texture
-   glGenTextures ( 1, &(userData->textureId) );
-   glBindTexture ( GL_TEXTURE_2D, userData->textureId );
-   
-   printf("-----glTexImage2D %d %d %d\n",userData->colorType, userData->width,userData->height);
-   glTexImage2D ( GL_TEXTURE_2D, 0, userData->colorType, userData->width, userData->height, 0, userData->colorType, GL_UNSIGNED_BYTE, NULL );
-   
-   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    // Get the sampler location
+    userData->samplerLoc = glGetUniformLocation(userData->programObject, "s_texture");
 
-   glClearColor ( 0.0f, 0.0f, 0.0f, 0.0f );
-   return GL_TRUE;
+    // Load the texture
+    glGenTextures(1, &(userData->textureId));
+    glBindTexture(GL_TEXTURE_2D, userData->textureId);
+
+    printf("-----glTexImage2D %d %d %d\n", userData->colorType, userData->width, userData->height);
+    glTexImage2D(GL_TEXTURE_2D, 0, userData->colorType, userData->width, userData->height, 0, userData->colorType,
+                 GL_UNSIGNED_BYTE, NULL);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    return GL_TRUE;
 }
 
+void ozone_egl_textureDraw(ozone_egl_UserData *userData) {
+    GLfloat vVertices[] = {
+        -0.96f, 0.96f,  0.0f, // Position 0
+        0.0f,   0.0f,         // TexCoord 0
+        -0.96f, -0.96f, 0.0f, // Position 1
+        0.0f,   1.0f,         // TexCoord 1
+        0.96f,  -0.96f, 0.0f, // Position 2
+        1.0f,   1.0f,         // TexCoord 2
+        0.96f,  0.96f,  0.0f, // Position 3
+        1.0f,   0.0f          // TexCoord 3
+    };
 
-void ozone_egl_textureDraw ( ozone_egl_UserData *userData)
-{
-                         
-   GLfloat vVertices[] = { -0.96f,  0.96f, 0.0f,  // Position 0
-                            0.0f,  0.0f,        // TexCoord 0 
-                           -0.96f, -0.96f, 0.0f,  // Position 1
-                            0.0f,  1.0f,        // TexCoord 1
-                            0.96f, -0.96f, 0.0f,  // Position 2
-                            1.0f,  1.0f,        // TexCoord 2
-                            0.96f,  0.96f, 0.0f,  // Position 3
-                            1.0f,  0.0f         // TexCoord 3
-                         };                    
-                 
-   GLushort indices[] = { 0, 1, 2, 0, 2, 3 };
-   
-   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, userData->width, userData->height, userData->colorType, GL_UNSIGNED_BYTE, userData->data); 
-      
-   // Set the viewport
-   glViewport ( 0, 0, g_WindowWidth, g_WindowHeight );
-   
-   // Clear the color buffer
-   glClear ( GL_COLOR_BUFFER_BIT );
+    GLushort indices[] = {0, 1, 2, 0, 2, 3};
 
-   // Use the program object
-   glUseProgram ( userData->programObject );
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, userData->width, userData->height, userData->colorType, GL_UNSIGNED_BYTE,
+                    userData->data);
 
-   // Load the vertex position
-   glVertexAttribPointer ( userData->positionLoc, 3, GL_FLOAT, 
-                           GL_FALSE, 5 * sizeof(GLfloat), vVertices );
-   // Load the texture coordinate
-   glVertexAttribPointer ( userData->texCoordLoc, 2, GL_FLOAT,
-                           GL_FALSE, 5 * sizeof(GLfloat), &vVertices[3] );
+    // Set the viewport
+    glViewport(0, 0, g_WindowWidth, g_WindowHeight);
 
-   glEnableVertexAttribArray ( userData->positionLoc );
-   glEnableVertexAttribArray ( userData->texCoordLoc );
+    // Clear the color buffer
+    glClear(GL_COLOR_BUFFER_BIT);
 
-   // Bind the texture
-   glActiveTexture ( GL_TEXTURE0 );
-   glBindTexture ( GL_TEXTURE_2D, userData->textureId );
+    // Use the program object
+    glUseProgram(userData->programObject);
 
-   // Set the sampler texture unit to 0
-   glUniform1i ( userData->samplerLoc, 0 );
+    // Load the vertex position
+    glVertexAttribPointer(userData->positionLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), vVertices);
+    // Load the texture coordinate
+    glVertexAttribPointer(userData->texCoordLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), &vVertices[3]);
 
-   glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
+    glEnableVertexAttribArray(userData->positionLoc);
+    glEnableVertexAttribArray(userData->texCoordLoc);
 
+    // Bind the texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, userData->textureId);
+
+    // Set the sampler texture unit to 0
+    glUniform1i(userData->samplerLoc, 0);
+
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices);
 }
 
+void ozone_egl_textureShutDown(ozone_egl_UserData *userData) {
+    // Delete texture object
+    glDeleteTextures(1, &(userData->textureId));
 
-void ozone_egl_textureShutDown ( ozone_egl_UserData *userData )
-{
-   // Delete texture object
-   glDeleteTextures ( 1, &(userData->textureId) );
-
-   // Delete program object
-   glDeleteProgram ( userData->programObject );
+    // Delete program object
+    glDeleteProgram(userData->programObject);
 }
