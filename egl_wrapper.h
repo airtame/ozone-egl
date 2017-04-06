@@ -54,11 +54,8 @@ int ozone_egl_destroy();
 int ozone_egl_swap();
 NativeDisplayType ozone_egl_getNativedisp();
 EGLint *ozone_egl_getConfigAttribs();
-EGLSurface ozone_egl_getsurface();
-EGLConfig ozone_egl_getconfig();
 EGLDisplay ozone_egl_getdisp();
 
-void ozone_egl_makecurrent();
 int ozone_egl_textureInit(ozone_egl_UserData *userData);
 void ozone_egl_textureDraw(ozone_egl_UserData *userData);
 void ozone_egl_textureShutDown(ozone_egl_UserData *userData);

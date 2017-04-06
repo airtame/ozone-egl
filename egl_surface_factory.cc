@@ -61,6 +61,7 @@ void EglOzoneCanvas::ResizeCanvas(const gfx::Size& viewport_size) {
         ozone_egl_textureShutDown(&userDate_);
     }
     surface_ = SkSurface::MakeRasterN32Premul(viewport_size.width(), viewport_size.height());
+    userDate_.width = viewport_size.width();
     userDate_.height = viewport_size.height();
     userDate_.colorType = GL_BGRA_EXT;
     ozone_egl_textureInit(&userDate_);

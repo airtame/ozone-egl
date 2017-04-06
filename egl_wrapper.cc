@@ -22,22 +22,6 @@ typedef NativeDisplayType NativeDisplay;
 typedef intptr_t NativeWindow;
 typedef void *NativePixmap;
 
-typedef struct fbdev_window {
-    unsigned short width;
-    unsigned short height;
-} fbdev_window;
-
-// rgba8888
-/*
-static EGLint g_configAttribs[] = {
-    EGL_RED_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_BLUE_SIZE, 8,
-    EGL_ALPHA_SIZE, 8,
-    EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-    EGL_NONE,
-};
-  */
 static EGLint g_configAttribs[] = {
     EGL_RED_SIZE, 5, EGL_GREEN_SIZE, 6, EGL_BLUE_SIZE, 5, EGL_SURFACE_TYPE, EGL_WINDOW_BIT, EGL_NONE,
 };
@@ -68,23 +52,6 @@ void ozone_egl_nativeDestroyDisplay(NativeDisplay display) {
 NativeWindowType ozone_egl_GetNativeWin() {
     LOG(INFO) << "ozone_egl_GetNativeWin :" << std::hex << (void *)g_NativeWindow;
     return g_NativeWindow;
-}
-
-NativeWindow ozone_egl_nativeCreateWindow(const char *title, int width, int height, EGLint visualId) {
-    fbdev_window *fbwin = (fbdev_window *)malloc(sizeof(fbdev_window));
-    if (NULL == fbwin) {
-        return 0;
-    }
-
-    fbwin->width = width;
-    fbwin->height = height;
-    return (NativeWindow)fbwin;
-}
-
-void ozone_egl_nativeDestroyWindow(NativeWindow window) {
-    if (window != 0) {
-        free((fbdev_window *)window);
-    }
 }
 
 EGLint ozone_egl_setup(EGLint x, EGLint y, EGLint width, EGLint height) {
@@ -185,9 +152,7 @@ int ozone_egl_destroy() {
 }
 
 int ozone_egl_swap() {
-    DCHECK(g_EglSurface);
     eglSwapBuffers(g_EglDisplay, g_EglSurface);
-    DCHECK(g_EglSurface);
     return OZONE_EGL_SUCCESS;
 }
 
@@ -199,18 +164,10 @@ EGLDisplay ozone_egl_getdisp() {
     return g_EglDisplay;
 }
 
-EGLConfig ozone_egl_getconfig() {
-    return g_EglConfig;
-}
-
-EGLSurface ozone_egl_getsurface() {
-    return g_EglSurface;
-}
-
-void ozone_egl_makecurrent() {
+/*void ozone_egl_makecurrent() {
     eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext);
 }
-
+*/
 GLuint ozone_egl_loadShader(GLenum type, const char *shaderSrc) {
     GLuint shader;
     GLint compiled;
