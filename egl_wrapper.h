@@ -56,7 +56,7 @@ typedef struct
 
 } ozone_egl_UserData;
 
-
+EGLint ozone_egl_nativeCreateWindow ();
 EGLint ozone_egl_setup(EGLint x, EGLint y, EGLint width, EGLint height );
 int     ozone_egl_destroy();
 int     ozone_egl_swap();

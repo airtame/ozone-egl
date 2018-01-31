@@ -15,19 +15,11 @@
 #include "egl_wrapper.h"
 #include "base/logging.h"
 
-#if defined(EGL_API_BRCM)
-#include "bcm_host.h"
-#endif
 
 typedef NativeDisplayType NativeDisplay;
 typedef intptr_t            NativeWindow;
 typedef void *            NativePixmap;
 
-typedef struct fbdev_window
-{
-    unsigned short width;
-    unsigned short height;
-} fbdev_window;
 
 
 //rgba8888
@@ -41,13 +33,13 @@ static EGLint g_configAttribs[] = {
     EGL_NONE,
 };
   */
-static EGLint g_configAttribs[] = {
-    EGL_RED_SIZE, 5,
-    EGL_GREEN_SIZE, 6,
-    EGL_BLUE_SIZE, 5,
-    EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-    EGL_NONE,
-};
+ static EGLint g_configAttribs[] = {
+     EGL_RED_SIZE, 5,
+     EGL_GREEN_SIZE, 6,
+     EGL_BLUE_SIZE, 5,
+     EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+     EGL_NONE,
+     };
 
 static EGLDisplay g_EglDisplay = NULL;
 static EGLContext g_EglContext = NULL;
@@ -69,68 +61,43 @@ NativeDisplay ozone_egl_nativeCreateDisplay(void)
 #endif
 }
 
-void ozone_egl_nativeDestroyDisplay(NativeDisplay display)
-{
-    return;
-}
-
 NativeWindowType ozone_egl_GetNativeWin(){
   return g_NativeWindow;
 }
 
-NativeWindow ozone_egl_nativeCreateWindow(const char *title, int width, int height, EGLint visualId)
-{
-    fbdev_window *fbwin =(fbdev_window *) malloc( sizeof(fbdev_window));
-    if (NULL == fbwin)
-    {
-        return 0;
-    }
 
-    fbwin->width  = width;
-    fbwin->height = height;
-    return (NativeWindow) fbwin;
-}
+EGLint ozone_egl_nativeCreateWindow() {
+    g_NativeDisplay = (NativeDisplayType)ozone_egl_nativeCreateDisplay();
+    #if defined(EGL_API_FB)
+    fbGetDisplayGeometry(g_NativeDisplay,&g_WindowWidth,&g_WindowHeight);
+    g_NativeWindow = fbCreateWindow(g_NativeDisplay, 0, 0, g_WindowWidth, g_WindowHeight);
+    return OZONE_EGL_SUCCESS;
+    #endif
 
-void ozone_egl_nativeDestroyWindow(NativeWindow window)
-{
-    if(window !=0 )
-    {
-       free((fbdev_window*) window);
-    }
+    return OZONE_EGL_FAILURE;
 }
 
 EGLint ozone_egl_setup(EGLint x, EGLint y, EGLint width, EGLint height )
 {
-    EGLConfig configs[10];
-    EGLint matchingConfigs;
-    EGLint err;
+   EGLConfig configs[10];
+   EGLint matchingConfigs;
+   EGLint err;
 
-#if defined(EGL_API_BRCM)
-    bcm_host_init();
-#endif
+   EGLint ctxAttribs[] =
+   {
+       EGL_CONTEXT_CLIENT_VERSION, 2,
+       EGL_NONE
+  };
 
-    EGLint ctxAttribs[] =
-    {
-        EGL_CONTEXT_CLIENT_VERSION, 2,
-        EGL_NONE
-    };
+   eglBindAPI(EGL_OPENGL_ES_API);
 
-    eglBindAPI(EGL_OPENGL_ES_API);
 
-    g_NativeDisplay = (NativeDisplayType)ozone_egl_nativeCreateDisplay();
-#if defined(EGL_API_FB)
-    fbGetDisplayGeometry(g_NativeDisplay,&g_WindowWidth,&g_WindowHeight);
-#elif defined(EGL_API_BRCM)
-    uint32_t w = 1280;
-	uint32_t h = 720;
-    if (graphics_get_display_size(0, &w, &h) >= 0) {
-        g_WindowWidth = w;
-        g_WindowHeight = h;
-        LOG(INFO) << "Detected display size: " << w << "x" << h;
-    } else
-        LOG(ERROR) << "Failed to detect display size, using default: " << w << "x" << h;
-#endif
+    if (!ozone_egl_nativeCreateWindow()) {
+        LOG(ERROR) << "error creating native window";
+        return OZONE_EGL_FAILURE;
+    }
 
+   
     g_EglDisplay = eglGetDisplay(g_NativeDisplay);
     if (g_EglDisplay == EGL_NO_DISPLAY)
     {
@@ -165,39 +132,6 @@ EGLint ozone_egl_setup(EGLint x, EGLint y, EGLint width, EGLint height )
     	LOG(ERROR) << "Failed to get EGL Context";
         return OZONE_EGL_FAILURE;
     }
-
-#if defined(EGL_API_FB)
-    g_NativeWindow = fbCreateWindow(g_NativeDisplay, 0, 0, g_WindowWidth, g_WindowHeight);
-#elif defined(EGL_API_BRCM)
-    static EGL_DISPMANX_WINDOW_T dispManWindow;
-    DISPMANX_ELEMENT_HANDLE_T dispmanElement;
-    DISPMANX_DISPLAY_HANDLE_T dispmanDisplay;
-    DISPMANX_UPDATE_HANDLE_T dispmanUpdate;
-    VC_RECT_T dst_rect;
-    VC_RECT_T src_rect;
-
-    dst_rect.x = 0;
-    dst_rect.y = 0;
-    dst_rect.width = g_WindowWidth;
-    dst_rect.height = g_WindowHeight;
-
-    src_rect.x = 0;
-    src_rect.y = 0;
-    src_rect.width = g_WindowWidth << 16;
-    src_rect.height = g_WindowHeight << 16;
-
-    dispmanDisplay = vc_dispmanx_display_open(0);
-    dispmanUpdate = vc_dispmanx_update_start(0);
-
-    dispmanElement = vc_dispmanx_element_add(dispmanUpdate, dispmanDisplay, 0, &dst_rect, 0, &src_rect, DISPMANX_PROTECTION_NONE, 0, 0, DISPMANX_NO_ROTATE);
-
-    dispManWindow.element = dispmanElement;
-    dispManWindow.width = g_WindowWidth;
-    dispManWindow.height = g_WindowHeight;
-    vc_dispmanx_update_submit_sync(dispmanUpdate);
-
-    g_NativeWindow = static_cast<NativeWindowType>(&dispManWindow);
-#endif
 
     g_EglSurface = eglCreateWindowSurface(g_EglDisplay, configs[0], g_NativeWindow, NULL);
     if (g_EglSurface == NULL)
@@ -245,7 +179,7 @@ int ozone_egl_destroy()
     eglTerminate(g_EglDisplay);
 
     //ozone_egl_nativeDestroyWindow(g_NativeWindow);
-    ozone_egl_nativeDestroyDisplay(g_NativeDisplay);
+    
 
     return OZONE_EGL_SUCCESS;
 }

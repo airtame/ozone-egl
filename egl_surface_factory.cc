@@ -48,10 +48,32 @@ class EglOzoneCanvas : public ui::SurfaceOzoneCanvas {
 };
 
 EglOzoneCanvas::EglOzoneCanvas() {
+  EGLint g_width;
+  EGLint g_height;
+  struct fb_var_screeninfo fb_var;
+
+  int fb_fd = open("/dev/fb0", O_RDWR);
+
+  if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &fb_var)) {
+    LOG(FATAL) << "failed to get fb var info errno: " << errno;
+    g_width = 640;
+    g_height = 480;
+  } else {
+    g_width = fb_var.xres;
+    g_height = fb_var.yres;
+  }
+
+  close(fb_fd);
+
+  if (!ozone_egl_setup(0, 0, g_width, g_height)) {
+    LOG(FATAL) << "setup failed";
+  }
+
   memset(&userDate_, 0, sizeof(userDate_));
 }
 EglOzoneCanvas::~EglOzoneCanvas() {
   ozone_egl_textureShutDown(&userDate_);
+  ozone_egl_destroy();
 }
 
 void EglOzoneCanvas::ResizeCanvas(const gfx::Size& viewport_size) {
@@ -107,55 +129,18 @@ class OzoneEgl : public ui::SurfaceOzoneEGL {
   intptr_t native_window_;
 };
 
-SurfaceFactoryEgl::SurfaceFactoryEgl() : init_(false) {}
+SurfaceFactoryEgl::SurfaceFactoryEgl() {
+  if (!ozone_egl_nativeCreateWindow()) {
+    LOG(FATAL)<<"Native window failed";
+  }
+}
 
 SurfaceFactoryEgl::~SurfaceFactoryEgl() {
-  DestroySingleWindow();
-}
-
-EGLint g_width;
-EGLint g_height;
-bool SurfaceFactoryEgl::CreateSingleWindow() {
-  struct fb_var_screeninfo fb_var;
-
-  int fb_fd = open("/dev/fb0", O_RDWR);
-
-  if (init_) {
-    return true;
-  }
-
-  if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &fb_var)) {
-    LOG(FATAL) << "failed to get fb var info errno: " << errno;
-    g_width = 640;
-    g_height = 480;
-  } else {
-    g_width = fb_var.xres;
-    g_height = fb_var.yres;
-  }
-
-  close(fb_fd);
-
-  if (!ozone_egl_setup(0, 0, g_width, g_height)) {
-    LOG(FATAL) << "CreateSingleWindow";
-    return false;
-  }
-  init_ = true;
-  return true;
-}
-
-void SurfaceFactoryEgl::DestroySingleWindow() {
-  ozone_egl_destroy();
-  init_ = false;
 }
 
 intptr_t SurfaceFactoryEgl::GetNativeDisplay() {
   return (intptr_t)ozone_egl_getNativedisp();
 }
-
-intptr_t SurfaceFactoryEgl::GetNativeWindow() {
-  return (intptr_t)ozone_egl_GetNativeWin();
-}
-
 scoped_ptr<ui::SurfaceOzoneEGL> SurfaceFactoryEgl::CreateEGLSurfaceForWidget(
     gfx::AcceleratedWidget widget) {
   return make_scoped_ptr<ui::SurfaceOzoneEGL>(new OzoneEgl(widget));
@@ -165,7 +150,6 @@ bool SurfaceFactoryEgl::LoadEGLGLES2Bindings(
     AddGLLibraryCallback add_gl_library,
     SetGLGetProcAddressProcCallback set_gl_get_proc_address) {
   return LoadDefaultEGLGLES2Bindings(add_gl_library, set_gl_get_proc_address);
-  // return false;
 }
 
 scoped_ptr<ui::SurfaceOzoneCanvas> SurfaceFactoryEgl::CreateCanvasForWidget(

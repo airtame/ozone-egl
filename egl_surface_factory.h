@@ -19,11 +19,7 @@ namespace ui {
 class SurfaceFactoryEgl : public ui::SurfaceFactoryOzone {
  public:
   SurfaceFactoryEgl();
-  ~SurfaceFactoryEgl() override  ;
-
-  // Create the window.
-  bool CreateSingleWindow();
-  void DestroySingleWindow();
+  ~SurfaceFactoryEgl() override;
 
   // SurfaceFactoryOzone:
   intptr_t GetNativeDisplay() override;
@@ -34,10 +30,6 @@ class SurfaceFactoryEgl : public ui::SurfaceFactoryOzone {
       SetGLGetProcAddressProcCallback set_gl_get_proc_address) override;
   scoped_ptr<ui::SurfaceOzoneCanvas> CreateCanvasForWidget(
       gfx::AcceleratedWidget widget) override;
-  intptr_t GetNativeWindow();
-
- private:
-    bool init_;
 };
 
 }  // namespace ui

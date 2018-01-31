@@ -1,3 +1,4 @@
+#include "egl_wrapper.h"
 #include "egl_window.h"
 
 #include "base/bind.h"
@@ -20,8 +21,8 @@ namespace ui {
        event_factory_(event_factory),
        bounds_(bounds),
        surface_factory_(surface_factory) {
-   surface_factory_->CreateSingleWindow();
-   window_id_=surface_factory_->GetNativeWindow();
+   window_id_= (intptr_t)ozone_egl_GetNativeWin();
+   
  }
  
  eglWindow::~eglWindow() {
