@@ -18,7 +18,6 @@
 #include "ui/ozone/public/system_input_injector.h"
 #include "ui/platform_window/platform_window.h"
 #include "egl_window.h"
-#include "egl_wrapper.h"
 
 namespace ui {
 

@@ -40,6 +40,8 @@
         'egl_wrapper.h',
         'egl_window.cc',
         'egl_window.h',
+        'egl_ozone_canvas.h',
+        'egl_ozone_canvas.cc'
       ],
       'link_settings': {
             'libraries': [

@@ -17,13 +17,12 @@ namespace ui {
          EventFactoryEvdev* event_factory,
          const gfx::Rect& bounds)
      : delegate_(delegate),
-       event_factory_(event_factory),
-       bounds_(bounds),
-       surface_factory_(surface_factory) {
-   surface_factory_->CreateSingleWindow();
-   window_id_=surface_factory_->GetNativeWindow();
+     event_factory_(event_factory),
+     bounds_(bounds),
+     surface_factory_(surface_factory),
+     window_id_(surface_factory_->GetNativeWindow()){
  }
- 
+
  eglWindow::~eglWindow() {
    ui::PlatformEventSource::GetInstance()->RemovePlatformEventDispatcher(this);
  }
@@ -36,55 +35,55 @@ namespace ui {
    PlatformEventSource::GetInstance()->AddPlatformEventDispatcher(this);
    delegate_->OnAcceleratedWidgetAvailable(window_id_, 1.f);
  }
- 
+
  gfx::Rect eglWindow::GetBounds() {
    return bounds_;
  }
- 
+
  void eglWindow::SetBounds(const gfx::Rect& bounds) {
    bounds_ = bounds;
    delegate_->OnBoundsChanged(bounds);
  }
- 
+
  void eglWindow::Show() {
  }
- 
+
  void eglWindow::Hide() {
  }
- 
+
  void eglWindow::Close() {
  }
- 
+
  void eglWindow::SetCapture() {
  }
- 
+
  void eglWindow::ReleaseCapture() {
  }
- 
+
  void eglWindow::ToggleFullscreen() {
  }
- 
+
  void eglWindow::Maximize() {
  }
- 
+
  void eglWindow::Minimize() {
  }
- 
+
  void eglWindow::Restore() {
  }
- 
+
  void eglWindow::SetCursor(PlatformCursor cursor) {
  }
- 
+
  void eglWindow::MoveCursorTo(const gfx::Point& location) {
    gfx::PointF locationF;
    locationF.SetPoint(location.x(),location.y());
    event_factory_->WarpCursorTo(window_id_, locationF);
  }
- 
+
  void eglWindow::ConfineCursorToBounds(const gfx::Rect& bounds) {
  }
- 
+
 bool eglWindow::CanDispatchEvent(const PlatformEvent& ne) {
   return true;
 }
@@ -98,5 +97,5 @@ uint32_t eglWindow::DispatchEvent(const PlatformEvent& native_event) {
 
   return POST_DISPATCH_STOP_PROPAGATION;
 }
- 
+
 }
