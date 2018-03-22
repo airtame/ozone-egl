@@ -33,7 +33,7 @@ class EglOzoneCanvas : public ui::SurfaceOzoneCanvas {
 
  private:
   sk_sp<SkSurface> surface_;
-  ozone_egl_UserData userDate_;
+  EglUserData userData_;
   EglWrapper& eglWrapper_;
 };
 }

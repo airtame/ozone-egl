@@ -1,7 +1,6 @@
 // Copyright 2014 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -48,7 +47,7 @@ GLuint ozone_egl_loadShader ( GLenum type, const char *shaderSrc )
       char* infoLog = new char[infoLen];
 
       glGetShaderInfoLog ( shader, infoLen, nullptr, infoLog );
-      printf ( "Error compiling shader:%s\n", infoLog );
+      LOG(ERROR) << "Error compiling shader:" << infoLog << std::endl;
 
       delete[] infoLog;
     }
@@ -107,7 +106,7 @@ GLuint ozone_egl_loadProgram ( const char *vertShaderSrc, const char *fragShader
       char* infoLog = new char[infoLen];
 
       glGetProgramInfoLog ( programObject, infoLen, nullptr, infoLog );
-      printf ( "Error linking program:%s\n", infoLog );
+      LOG(ERROR) << "Error linking program: " << infoLog << std::endl;
 
       delete[] infoLog;
     }
@@ -156,12 +155,10 @@ bool EglWrapper::ozone_egl_setup()
     EGL_NONE
   };
 
-    eglBindAPI(EGL_OPENGL_ES_API);
+  eglBindAPI(EGL_OPENGL_ES_API);
 
-#if defined(EGL_API_FB)
-    nativeDisplay_ = (NativeDisplayType)fbGetDisplayByIndex(0);
-    fbGetDisplayGeometry(nativeDisplay_,&windowWidth_,&windowHeight_);
-#endif
+  nativeDisplay_ = (NativeDisplayType)fbGetDisplayByIndex(0);
+  fbGetDisplayGeometry(nativeDisplay_,&windowWidth_,&windowHeight_);
 
   eglDisplay_ = eglGetDisplay(nativeDisplay_);
   if (eglDisplay_ == EGL_NO_DISPLAY)
@@ -198,9 +195,7 @@ bool EglWrapper::ozone_egl_setup()
     return false;
   }
 
-#if defined(EGL_API_FB)
   nativeWindow_ = fbCreateWindow(nativeDisplay_, 0, 0, windowWidth_, windowHeight_);
-#endif
 
   eglSurface_ = eglCreateWindowSurface(eglDisplay_, configs[0], nativeWindow_, nullptr);
   if (eglSurface_ == nullptr)
@@ -262,7 +257,7 @@ void EglWrapper::ozone_egl_makecurrent()
   eglMakeCurrent(eglDisplay_, eglSurface_, eglSurface_, eglContext_);
 }
 
-int EglWrapper::ozone_egl_textureInit (ozone_egl_UserData * userData )
+void EglWrapper::ozone_egl_textureInit (EglUserData& userData )
 {
   GLbyte vShaderStr[] =
     "attribute vec4 a_position;   \n"
@@ -285,21 +280,21 @@ int EglWrapper::ozone_egl_textureInit (ozone_egl_UserData * userData )
 
 
   // Load the shaders and get a linked program object
-  userData->programObject = ozone_egl_loadProgram ( (const char *)vShaderStr, (const char*)fShaderStr );
+  userData.programObject = ozone_egl_loadProgram ( (const char *)vShaderStr, (const char*)fShaderStr );
 
   // Get the attribute locations
-  userData->positionLoc = glGetAttribLocation ( userData->programObject, "a_position" );
-  userData->texCoordLoc = glGetAttribLocation ( userData->programObject, "a_texCoord" );
+  userData.positionLoc = glGetAttribLocation ( userData.programObject, "a_position" );
+  userData.texCoordLoc = glGetAttribLocation ( userData.programObject, "a_texCoord" );
 
   // Get the sampler location
-  userData->samplerLoc = glGetUniformLocation ( userData->programObject, "s_texture" );
+  userData.samplerLoc = glGetUniformLocation ( userData.programObject, "s_texture" );
 
   // Load the texture
-  glGenTextures ( 1, &(userData->textureId) );
-  glBindTexture ( GL_TEXTURE_2D, userData->textureId );
+  glGenTextures ( 1, &(userData.textureId) );
+  glBindTexture ( GL_TEXTURE_2D, userData.textureId );
 
-  printf("-----glTexImage2D %d %d %d\n",userData->colorType, userData->width,userData->height);
-  glTexImage2D ( GL_TEXTURE_2D, 0, userData->colorType, userData->width, userData->height, 0, userData->colorType, GL_UNSIGNED_BYTE, nullptr );
+  LOG(INFO) <<  "-----glTexImage2D " << userData.colorType << " " << userData.width << " " << userData.height << std::endl;
+  glTexImage2D ( GL_TEXTURE_2D, 0, userData.colorType, userData.width, userData.height, 0, userData.colorType, GL_UNSIGNED_BYTE, nullptr );
 
   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -307,10 +302,9 @@ int EglWrapper::ozone_egl_textureInit (ozone_egl_UserData * userData )
   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 
   glClearColor ( 0.0f, 0.0f, 0.0f, 0.0f );
-  return GL_TRUE;
 }
 
-void EglWrapper::ozone_egl_textureDraw ( ozone_egl_UserData *userData)
+void EglWrapper::ozone_egl_textureDraw (EglUserData& userData)
 {
 
   GLfloat vVertices[] = { -0.96f,  0.96f, 0.0f,  // Position 0
@@ -325,7 +319,7 @@ void EglWrapper::ozone_egl_textureDraw ( ozone_egl_UserData *userData)
 
   GLushort indices[] = { 0, 1, 2, 0, 2, 3 };
 
-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, userData->width, userData->height, userData->colorType, GL_UNSIGNED_BYTE, userData->data);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, userData.width, userData.height, userData.colorType, GL_UNSIGNED_BYTE, userData.data);
 
   // Set the viewport
   glViewport ( 0, 0, windowWidth_, windowHeight_ );
@@ -334,37 +328,37 @@ void EglWrapper::ozone_egl_textureDraw ( ozone_egl_UserData *userData)
   glClear ( GL_COLOR_BUFFER_BIT );
 
   // Use the program object
-  glUseProgram ( userData->programObject );
+  glUseProgram ( userData.programObject );
 
   // Load the vertex position
-  glVertexAttribPointer ( userData->positionLoc, 3, GL_FLOAT,
+  glVertexAttribPointer ( userData.positionLoc, 3, GL_FLOAT,
       GL_FALSE, 5 * sizeof(GLfloat), vVertices );
   // Load the texture coordinate
-  glVertexAttribPointer ( userData->texCoordLoc, 2, GL_FLOAT,
+  glVertexAttribPointer ( userData.texCoordLoc, 2, GL_FLOAT,
       GL_FALSE, 5 * sizeof(GLfloat), &vVertices[3] );
 
-  glEnableVertexAttribArray ( userData->positionLoc );
-  glEnableVertexAttribArray ( userData->texCoordLoc );
+  glEnableVertexAttribArray ( userData.positionLoc );
+  glEnableVertexAttribArray ( userData.texCoordLoc );
 
   // Bind the texture
   glActiveTexture ( GL_TEXTURE0 );
-  glBindTexture ( GL_TEXTURE_2D, userData->textureId );
+  glBindTexture ( GL_TEXTURE_2D, userData.textureId );
 
   // Set the sampler texture unit to 0
-  glUniform1i ( userData->samplerLoc, 0 );
+  glUniform1i ( userData.samplerLoc, 0 );
 
   glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
 
 }
 
 
-void EglWrapper::ozone_egl_textureShutDown ( ozone_egl_UserData *userData )
+void EglWrapper::ozone_egl_textureShutDown (EglUserData& userData )
 {
   // Delete texture object
-  glDeleteTextures ( 1, &(userData->textureId) );
+  glDeleteTextures ( 1, &(userData.textureId) );
 
   // Delete program object
-  glDeleteProgram ( userData->programObject );
+  glDeleteProgram ( userData.programObject );
 }
 
 } // end of namespace ui

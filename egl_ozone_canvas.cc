@@ -10,29 +10,29 @@ EglOzoneCanvas::EglOzoneCanvas() : eglWrapper_(EglWrapper::getInstance()) {
 }
 
 EglOzoneCanvas::~EglOzoneCanvas() {
-  eglWrapper_.ozone_egl_textureShutDown(&userDate_);
+  eglWrapper_.ozone_egl_textureShutDown(userData_);
 }
 
 void EglOzoneCanvas::ResizeCanvas(const gfx::Size& viewport_size) {
-  if (userDate_.width == viewport_size.width() &&
-      userDate_.height == viewport_size.height()) {
+  if (userData_.width == viewport_size.width() &&
+      userData_.height == viewport_size.height()) {
     return;
-  } else if (userDate_.width != 0 && userDate_.height != 0) {
-    eglWrapper_.ozone_egl_textureShutDown(&userDate_);
+  } else if (userData_.width != 0 && userData_.height != 0) {
+    eglWrapper_.ozone_egl_textureShutDown(userData_);
   }
   surface_ = SkSurface::MakeRasterN32Premul(viewport_size.width(),
                                             viewport_size.height());
-  userDate_.width = viewport_size.width();
-  userDate_.height = viewport_size.height();
-  userDate_.colorType = GL_BGRA_EXT;
-  eglWrapper_.ozone_egl_textureInit(&userDate_);
+  userData_.width = viewport_size.width();
+  userData_.height = viewport_size.height();
+  userData_.colorType = GL_BGRA_EXT;
+  eglWrapper_.ozone_egl_textureInit(userData_);
 }
 
 void EglOzoneCanvas::PresentCanvas(const gfx::Rect& damage) {
   SkImageInfo info;
   size_t row_bytes;
-  userDate_.data = (char*)surface_->peekPixels(&info, &row_bytes);
-  eglWrapper_.ozone_egl_textureDraw(&userDate_);
+  userData_.data = (char*)surface_->peekPixels(&info, &row_bytes);
+  eglWrapper_.ozone_egl_textureDraw(userData_);
   eglWrapper_.ozone_egl_swap();
 }
 

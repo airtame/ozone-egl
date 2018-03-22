@@ -10,7 +10,7 @@
 
 namespace ui {
 
-struct ozone_egl_UserData
+struct EglUserData
 {
   // Handle to a program object
   GLuint programObject = 0;
@@ -46,9 +46,9 @@ class EglWrapper {
 
   bool ozone_egl_swap();
   void ozone_egl_makecurrent();
-  int ozone_egl_textureInit(ozone_egl_UserData *userData);
-  void ozone_egl_textureDraw(ozone_egl_UserData *userData);
-  void ozone_egl_textureShutDown(ozone_egl_UserData *userData);
+  void ozone_egl_textureInit(EglUserData& userData);
+  void ozone_egl_textureDraw(EglUserData& userData);
+  void ozone_egl_textureShutDown(EglUserData& userData);
 
   // getter
   NativeDisplayType ozone_egl_getNativedisp() const { return nativeDisplay_; }
