@@ -47,7 +47,7 @@ class EglWrapper {
   bool ozone_egl_swap();
   void ozone_egl_makecurrent();
   void ozone_egl_textureInit(EglUserData& userData);
-  void ozone_egl_textureDraw(EglUserData& userData);
+  void ozone_egl_textureDraw(const EglUserData& userData);
   void ozone_egl_textureShutDown(EglUserData& userData);
 
   // getter

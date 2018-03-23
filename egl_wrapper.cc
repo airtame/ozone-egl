@@ -304,7 +304,7 @@ void EglWrapper::ozone_egl_textureInit (EglUserData& userData )
   glClearColor ( 0.0f, 0.0f, 0.0f, 0.0f );
 }
 
-void EglWrapper::ozone_egl_textureDraw (EglUserData& userData)
+void EglWrapper::ozone_egl_textureDraw (const EglUserData& userData)
 {
 
   GLfloat vVertices[] = { -0.96f,  0.96f, 0.0f,  // Position 0
