@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_OZONE_PLATFORM_TEST_OZONE_PLATFORM_H_
-#define UI_OZONE_PLATFORM_TEST_OZONE_PLATFORM_H_
+#ifndef UI_OZONE_PLATFORM_OZONE_EGL_OZONE_PLATFORM_EGL_H_
+#define UI_OZONE_PLATFORM_OZONE_EGL_OZONE_PLATFORM_EGL_H_
 
 namespace ui {
 
@@ -14,4 +14,4 @@ OzonePlatform* CreateOzonePlatformEgl();
 
 }  // namespace ui
 
-#endif
+#endif  // UI_OZONE_PLATFORM_OZONE_EGL_OZONE_PLATFORM_EGL_H_

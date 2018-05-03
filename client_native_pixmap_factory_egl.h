@@ -5,12 +5,14 @@
 #ifndef UI_OZONE_PLATFORM_EGLTEST_CLIENT_NATIVE_PIXMAP_FACTORY_EGL_H_
 #define UI_OZONE_PLATFORM_EGLTEST_CLIENT_NATIVE_PIXMAP_FACTORY_EGL_H_
 
+namespace gfx {
+class ClientNativePixmapFactory;
+}
+
 namespace ui {
 
-class ClientNativePixmapFactory;
-
 // Constructor hook for use in constructor_list.cc
-ClientNativePixmapFactory* CreateClientNativePixmapFactoryEgl();
+gfx::ClientNativePixmapFactory* CreateClientNativePixmapFactoryEgl();
 
 }  // namespace ui
 

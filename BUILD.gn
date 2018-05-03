@@ -1,0 +1,71 @@
+visibility = [ "//ui/ozone/*" ]
+
+config("egl_config") {
+  defines = [
+    "OZONE_IMPLEMENTATION",
+    "LINUX",
+    "EGL_API_FB"
+  ]
+
+  if (current_cpu != target_cpu) {
+    defines += [
+      "SHOULD_NOT_COMPILE_X86"
+    ]
+  }
+}
+
+source_set("ozone-egl") {
+  sources = []
+  defines = []
+
+  if (current_cpu == target_cpu) {
+    sources += [
+      "client_native_pixmap_factory_egl.cc",
+      "client_native_pixmap_factory_egl.h",
+      # "egl_ozone_canvas.cc",
+      # "egl_ozone_canvas.h",
+      # "egl_surface_factory.cc",
+      # "egl_surface_factory.h",
+      # "egl_window.cc",
+      # "egl_window.h",
+      # "egl_wrapper.cc",
+      # "egl_wrapper.h",
+      "gl_ozone_egl_impl.cc",
+      "gl_ozone_egl_impl.h",
+      "gl_surface_egl.cc",
+      "gl_surface_egl.h",
+      "ozone_platform_egl.cc",
+      "ozone_platform_egl.h",
+      "platform_window_egl.cc",
+      "platform_window_egl.h",
+      "surface_factory_egl.cc",
+      "surface_factory_egl.h",
+      # "GLSurfacelessImpl.cc",
+      # "GLSurfacelessImpl.h",
+      # "GLSurfaceEglImpl.cc"
+    ]
+  } else {
+    sources += [
+      "ozone_platform_egl.cc",
+      "ozone_platform_egl.h",
+     ]
+  }
+
+  deps = [
+   # "//base",
+    "//skia",
+    #"//ui/base",
+    "//ui/display",
+    #"//ui/events",
+    "//ui/events/ozone:events_ozone_evdev",
+    "//ui/events/ozone:events_ozone",
+    "//ui/events/ozone:events_ozone_layout",
+    #"//ui/events/platform",
+    "//ui/gfx/geometry",
+    "//ui/ozone/common",
+    #"//ui/platform_window",
+  ]
+
+  configs += [ ":egl_config" ]
+  libs = [ "EGL", "GLESv2" ]
+}
